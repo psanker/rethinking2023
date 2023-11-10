@@ -213,6 +213,11 @@
       ],
       "Hash": "1ec462871063897135c1bcbe0fc8f07d"
     },
+    "languageserver": {
+      "Package": "languageserver",
+      "Version": "0.3.16",
+      "Source": "Repository"
+    },
     "lifecycle": {
       "Package": "lifecycle",
       "Version": "1.0.4",
