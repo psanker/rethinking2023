@@ -1,0 +1,129 @@
+---
+title: "Homework 1"
+subtitle: "Statistical Rethinking"
+date: "`r strftime(Sys.Date(), format = '%Y-%m-%d')`"
+author: Patrick Anker
+header-includes:
+output: 
+  bookdown::pdf_document2:
+    includes:
+      in_header: "../preamble.tex"
+    toc: false
+    extra_dependencies: "float"
+    number_sections: false
+---
+
+```{r setup}
+library(ggplot2)
+set.seed(0xABBA)
+
+line_color <- "#d12e66"
+line_color2 <- "#027ea5"
+
+hist_fill <- "#dadada"
+hist_color <- "grey"
+```
+
+# Question 1
+
+_Suppose the globe tossing data had turned out to be 4 water and 11 land. Construct the posterior distribution._
+
+I'll continue to use the flat prior for $p$.
+
+\begin{align*}
+W\sim \mathrm{Binom}(N = 15, p) \\
+p\sim \mathrm{Uniform}(0, 1)
+\end{align*}
+
+The likelihood is given as
+
+$$
+P(W = 4, L = 11 | p) = \binom{15}{4}p^4(1-p)^{11}
+$$
+
+Via grid approximation,
+
+```{r}
+n <- 100
+p_grid <- seq(from = 0, to = 1, length.out = n)
+prob_p <- rep(1, n)
+
+post <- dbinom(4, size = 15, prob = p_grid) * prob_p
+post <- post / sum(post)
+
+dat <- tidytable::tidytable(p = p_grid, posterior = post)
+
+ggplot(dat, aes(x = p, y = posterior)) +
+  geom_point() +
+  theme_bw()
+```
+
+# Question 2
+
+_Using the posterior distribution from **1**, compute the posterior predictive for the next 5 tosses of the same globe._
+
+Creating samples from the posterior:
+
+```{r}
+n_samps <- 1e4
+samples <- sample(p_grid, size = n_samps, replace = TRUE, prob = post)
+```
+
+Now to examine the next few tosses:
+
+```{r}
+pops_w <- tidytable::tidytable(
+  w = rbinom(n_samps, size = 5, prob = samples),
+  sample = seq_len(n_samps)
+)
+
+ggplot(pops_w, aes(x = w)) +
+  geom_bar(fill = hist_fill, color = hist_color) +
+  theme_bw()
+```
+
+# Question 3
+
+_Use the posterior predictive distribution from **2** to calculate the probability of 3 or more water samples in the next 5 tosses._
+
+```{r}
+pops_w |>
+  tidytable::summarise(
+    three_or_more = max(w) >= 3,
+    .by = sample
+  ) |>
+  tidytable::pull(three_or_more) |>
+  mean()
+```
+
+# Question 4
+
+_This problem is an optional challenge for people who are taking the course for a second or third time. Suppose you observe $W = 5$ water points, but you forgot to write down how many times the globe was tossed, so you don’t know the number of land points $L$. Assume that $p = 0.7$ and compute the posterior distribution of the number of tosses $N$. Hint: Use the binomial distribution._
+
+Normally, I would use a NegBinom distribution here, but I will go with the Binom distribution and vary $N$. We know $N\geq 5$. I will use a Poisson distribution to model the prior of $N$ with 0 probability density less than 5.
+
+```{r, out.width="65%", fig.align="center", fig.cap="Comparison of prior and posterior distributions of $N$"}
+n_grid <- 0:30
+
+prior_n <- dpois(n_grid, lambda = 10)
+prior_n[n_grid < 5] <- 0
+prior_n <- prior_n / sum(prior_n) # Normalization for vec to be probabilities
+
+post_n <- dbinom(5, size = n_grid, prob = 0.7) * prior_n
+post_n <- post_n / sum(post_n)
+
+dat <- tidytable::tidytable(
+  N = c(n_grid, n_grid),
+  density = c(prior_n, post_n),
+  distribution = factor(c(
+    rep("Prior", length(n_grid)),
+    rep("Posterior", length(n_grid))
+  )),
+)
+
+ggplot(dat, aes(x = N, y = density, color = distribution)) +
+  geom_point() +
+  geom_line(alpha = 0.5) +
+  theme_bw()
+```
+
