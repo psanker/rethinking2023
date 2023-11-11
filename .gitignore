@@ -53,3 +53,4 @@ rsconnect/
 
 # Don't include rendered docs
 *.pdf
+*.html
