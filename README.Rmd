@@ -11,7 +11,7 @@ Worked solutions to [the venerable course by Richard McElreath](https://github.c
 So renv stops yelling at me.
 
 ```{r}
-languageserver::run
-rethinking::ulam
+invisible(languageserver::run)
+invisible(rethinking::ulam)
 ```
 
